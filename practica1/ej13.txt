@@ -1,0 +1,36 @@
+int result;
+
+void proceso_izquierda() {
+    result = 0;
+    int colaDeEnvio[3];
+
+    colaDeEnvio.append(result);
+
+    while (true) {
+        bool mandado
+        mandado = send(pid_derecha, colaDeEnvio.pop());
+
+        if(mandado == false){
+            colaDeEnvio.append(result);
+        }else{
+            result = cómputo_muy_difícil_1();
+
+        }
+    }
+}
+
+void proceso_derecha() {
+    colaDeResultados[3];
+
+    while(true) {
+        result = cómputo_muy_difícil_2();
+
+        int left_result = receive(pid_izquierda);
+
+        if(left_result == false){
+            colaDeResultados.append(result);
+        }else{
+            printf("%s %s", left_result, colaDeResultados.pop());
+        }
+    }
+}
