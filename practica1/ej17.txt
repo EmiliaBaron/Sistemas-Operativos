@@ -1,0 +1,134 @@
+void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO
+
+    // pipes[][2] es equivalente a int pipes[N][2], 
+    // pipes[x] → es un arreglo de 2 enteros (int[2])
+    // pipes[x][0] → extremo de lectura del pipe
+    // pipes[x][1] → extremo de escritura
+
+    int hijoANieto[2];
+    int nietoAHijo[2];
+
+    pipe(nietoAHijo);
+    pipe(hijoANieto);
+
+    // HAY QUE CERRAR TODOS LOS PIPES QUE NO SON NUESTROS 
+    for(int j = 0; j < cantidad_procesos * 2; j++){
+        if(j != lugar_escritura_hijo_padre && j != i){
+            close(pipes[j][0]);
+            close(pipes[j][1]);
+        }
+    }
+
+    int pidNieto = fork();
+
+    if(pidNieto != 0) {
+
+        close(hijoANieto[0]);
+        close(nietoAHijo[1]);
+
+        int numero = 0;
+        int resultado = 0;
+        char termino = 0;
+
+        read(pipe[i][0], &numero, sizeof(numero));
+
+        write(hijoANieto[1], &numero, sizeof(numero));
+
+        read(nietoAHijo[0], &resultado, sizeof(resultado));
+
+        read(pipes[i][0], &termino, sizeof(termino));
+        termino = '1'; //'1' en caracter es 49, pero si el padre lo interpreta como caracter funcionará
+
+        //no debería ser el pipe[N][1]?? tengo acceso al N?? SI, falta como parámetro en la función
+        write(pipes[i][1], &termino, sizeof(termino));
+
+        write(pipes[i][1], &resultado, sizeof(resultado));
+
+    }else{
+        close(hijoANieto[1]);
+        close(nietoAHijo[0]);
+
+        int numeroNieto = 0;
+
+        read(hijoANieto[0], &numeroNieto, sizeof(numeroNieto));
+
+        numeroNieto = calcular(numeroNieto);
+
+        write(nietoAHijo[1], &numeroNieto, sizeof(numeroNieto));
+
+        close(hijoANieto[0]);
+        close(nietoAHijo[1]);
+        exit(EXIT_SUCCESS);
+
+    }
+
+}
+
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        printf("Debe ejecutar con la cantidad de hijos como parametro\n");
+        return 0;
+    }
+
+    int N = atoi(argv[1]);
+    int pipes[N * 2][2];
+
+    for (int i = 0; i < N * 2; i++) {
+        pipe(pipes[i]);
+    }
+
+    for (int i = 0; i < N; i++) {
+        int pid = fork();
+
+        if (pid == 0) {
+            ejecutarHijo(i, pipes);
+            return 0;
+        } else {
+            int numero = dameNumero(pid);
+            write(pipes[i][1], &numero, sizeof(numero));
+        }
+    }
+
+    int cantidadTerminados = 0;
+    char hijoTermino[N];
+    
+    for (int i = 0; i < N; i++) {
+        hijoTermino[i] = 0;
+    }
+
+    while (cantidadTerminados < N) {
+        for (int i = 0; i < N; i++) {
+            if (hijoTermino[i]) {
+                continue;
+            }
+
+            char termino = 0;
+
+            // NO ENTIENDO POR QUÉ ESCRIBE ACÁ ¿porqué le avisa al hijo esto?
+            // Sincronización: El padre escribe un byte (termino) para actuar como una señal de "Ready" o "Ping". 
+            // El hijo está bloqueado en un read esperando esa señal. Esto asegura que el hijo no mande los resultados 
+            // hasta que el padre esté listo para recibirlos en su bucle de lectura (polling). Es una forma rudimentaria 
+            // de control de flujo.
+
+
+            write(pipes[i][1], &termino, sizeof(termino));
+            read(pipes[N + i][0], &termino, sizeof(termino));
+
+            if (termino) {
+                int numero;
+                int resultado;
+
+                read(pipes[N + i][0], &numero, sizeof(numero));
+                read(pipes[N + i][0], &resultado, sizeof(resultado));
+
+                informarResultado(numero, resultado);
+
+                hijoTermino[i] = 1;
+                cantidadTerminados++;
+            }
+        }
+    }
+
+    wait(NULL); //solo espera a un hijo teniendo varios???
+    return 0;
+}
