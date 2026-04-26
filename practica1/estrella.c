@@ -8,7 +8,24 @@
 #include <time.h> //para nanosleep()
 #include <sys/mman.h> //mmap
 
-void handler(int sig){
+void handlerPadreInt(int sig){
+
+}
+
+void handlerHijoHup(int sig){
+
+}
+
+void handlerHijoInt(int sig){
+
+    // sigset_t conjuntoCHLD;
+    // sigset_t conjuntoINT;
+
+    // sigemptyset(&conjuntoCHLD);
+    // sigemptyset(&conjuntoINT);
+    // sigaddset(&conjuntoCHLD, SIGCHLD);
+    // sigaddset(&conjuntoINT,SIGINT);
+    // sigprocmask(SIG_BLOCK, &conjuntoCHLD , &conjuntoINT);
 
 }
 
@@ -22,7 +39,7 @@ int main(){
     if (pidHijoOCero != 0){
 
         close(pipe1[1]);
-        signal(SIGINT, handler);
+        signal(SIGINT, handlerPadreInt);
 
         sigset_t conjunto;
         sigset_t conjuntoVacio;
@@ -37,12 +54,12 @@ int main(){
         struct sigaction actual;
         sigaction(SIGCHLD, NULL, &actual);
         sigemptyset(&conjuntoVacio);
-        sigprocmask(SIG_SETMASK, &conjuntoVacio , NULL);
+        //sigprocmask(SIG_SETMASK, &conjuntoVacio , NULL);
 
         struct timespec req;
     
-        req.tv_sec = 1;      // 1 segundo
-        req.tv_nsec = 0;     // 0 nanosegundos
+        req.tv_sec = 1;         // 1 segundo
+        req.tv_nsec = 0;        // 0 nanosegundos
         nanosleep(&req, NULL);
 
         struct stat info;
@@ -54,14 +71,80 @@ int main(){
         write(1, "¿Cuál es el significado de la vida?", 38);
         kill(pidHijoOCero, SIGINT);
 
-        wait(NULL);
+        char buf[3];
+
+        read(3, &buf, sizeof(buf));
+        write(1, "Mirá vos. El significado de la vida es 42.",44);
+        write(1, "¡Bang Bang, estás liquidado!\n",31);
+
+        kill(pidHijoOCero, SIGHUP);
+
+        sigset_t conjuntoCHLD;
+
+        sigemptyset(&conjuntoCHLD);
+        sigaddset(&conjuntoCHLD, SIGCHLD);
+        sigprocmask(SIG_BLOCK, &conjuntoCHLD , &conjuntoVacio); // incorrecto, aparece [CHLD] en vez de [INT]
+
+        struct sigaction actualp;
+        sigaction(SIGCHLD, NULL, &actualp);
+
+        sigset_t conjuntoINT;
+
+        sigemptyset(&conjuntoINT);
+        sigaddset(&conjuntoINT, SIGINT);
+        sigprocmask(SIG_SETMASK, &conjuntoINT , NULL); 
+
+        struct timespec req2;
+        struct timespec guardaa;
+    
+        req2.tv_sec = 10;       
+        req2.tv_nsec = 0;       
+        nanosleep(&req2, &guardaa); //me queda un número en guarda tipo 0x11111 meintras que el enunciado está como 3129..
+
+        write(1,"Te voy a buscar en la oscuridad.\n",33);
+        close(pipe1[0]);
 
     }else{
 
         close(pipe1[0]);
         int parentID = getppid();
-        signal(SIGINT, handler);
-        signal(SIGHUP, handler);
+        signal(SIGINT, handlerHijoInt);
+        signal(SIGHUP, handlerHijoHup);
+
+        struct stat info;
+        fstat(1, &info);
+        mmap(NULL, 4096, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
+        write(1, "Dejame Pensarlo...\n", 19);
+
+        sigset_t conjuntoCHLD;
+        sigset_t conjuntoINT;
+
+        sigemptyset(&conjuntoCHLD);
+        sigemptyset(&conjuntoINT);
+        sigaddset(&conjuntoCHLD, SIGCHLD);
+        sigaddset(&conjuntoINT,SIGINT);
+        sigprocmask(SIG_BLOCK, &conjuntoCHLD , &conjuntoINT); //no es correcto 
+
+        struct sigaction actual;
+        sigaction(SIGCHLD, NULL, &actual);
+
+        sigprocmask(SIG_SETMASK, &conjuntoINT , NULL); 
+
+        struct timespec reqh;
+        struct timespec guardar;
+        reqh.tv_sec = 5;      
+        reqh.tv_nsec = 0;     
+        nanosleep(&reqh, &guardar);
+
+        write(1,"Ya sé el significado de la vida.",34);
+        //4 es la parte de escritura del pipe?
+        write(4,"42",2);
+        kill(parentID, SIGINT);
+
+        write(1, "Me voy a mirar crecer las flores desde abajo.",46);   
+
+        close(pipe1[1]);
+        
 
     }
 
