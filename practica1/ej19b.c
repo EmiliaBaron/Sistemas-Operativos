@@ -6,6 +6,8 @@
 #include <sys/socket.h> // para los sockets
 #include <sys/un.h> // para el sockaddr_un
 
+//Tuve que haber hecho la técnica accept + fork?
+
 int crear_socket_server(char* nombreSocket){
 
     int server_socket;

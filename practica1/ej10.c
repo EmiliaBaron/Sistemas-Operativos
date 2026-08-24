@@ -40,7 +40,7 @@ int main(){
 
         printf("Soy Jennifer\n");
         int q = sleep(1);
-        exit(EXIT_SUCCESS);
+        exit(EXIT_SUCCESS); //está bien? Parece que Julieta hace exit antes
 
 
     }
