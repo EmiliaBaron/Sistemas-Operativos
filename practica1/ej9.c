@@ -15,6 +15,7 @@ volatile sig_atomic_t flag = 0;
 
 // Manejador de señal
 void handler(int sig) {
+    (void) sig;
     // se pone como parámetro sig aunque no se use porque es como la firma que usan las funciones que manejan señales
     //según la API
     flag = 1;
@@ -67,7 +68,7 @@ int main(){
         }
     }
 
-    kill(pidOrZero, SIGTERM);
+    kill(pidOrZero, SIGKILL);
     wait(NULL);
     exit(EXIT_SUCCESS);
 

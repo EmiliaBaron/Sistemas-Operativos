@@ -15,8 +15,7 @@ int main(){
     printf("Soy Juan\n");
     int q = sleep(1);
 
-    int estado;
-    wait(&estado);
+    wait(NULL);
 
     __pid_t pidJorgeOrZero = fork();
 
@@ -40,7 +39,7 @@ int main(){
 
         printf("Soy Jennifer\n");
         int q = sleep(1);
-        exit(EXIT_SUCCESS); //está bien? Parece que Julieta hace exit antes
+        exit(EXIT_SUCCESS); //está bien? Parece que Julieta hace exit antes SI
 
 
     }

@@ -7,7 +7,7 @@
 int main(){
 
     int pipeLsAWc[2]; 
-    //pipe siempre son ints
+
     pipe(pipeLsAWc);
 
     __pid_t pidLSOCero = fork();
@@ -18,8 +18,9 @@ int main(){
 
         if(pidWcOCero == 0){ //proceso wc
 
-            close(pipeLsAWc[1]);
+            //shell encargada de conectar pipes? lo debería poner en el código de la shell?
             dup2(pipeLsAWc[0], 0);
+            close(pipeLsAWc[1]);
             close(pipeLsAWc[0]);
 
             //como ya hice dup2 no se debe hacer un read manual
@@ -39,7 +40,8 @@ int main(){
 
         }else{
             // si no se coloca esto se cuelga
-            // creo que es porque si no wc no detecta cuando ls terminó de escribir, porque el sistema operativo no manda endOfFile
+            // creo que es porque si no wc no detecta cuando ls terminó de escribir, porque el sistema operativo no 
+            // manda endOfFile
             //porque hay referencias hacia el descriptor
             close(pipeLsAWc[0]);
             close(pipeLsAWc[1]);
@@ -64,7 +66,7 @@ int main(){
 
         char *args[] = {"ls", "-al", NULL};
 
-        execvp("ls", args);
+        execvp("wc", args);
 
         //lineas tiene que ser un buffer, en vez de char.
         //como ya se hizo dup2 no se escribe manualmente

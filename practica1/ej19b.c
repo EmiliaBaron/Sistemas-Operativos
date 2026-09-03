@@ -5,8 +5,9 @@
 #include <string.h> // para strcpy
 #include <sys/socket.h> // para los sockets
 #include <sys/un.h> // para el sockaddr_un
+#include <sys/wait.h>  // para los wait
 
-//Tuve que haber hecho la técnica accept + fork?
+//Tuve que haber hecho la técnica accept + fork? no porque en este caso es 1 cliente por servidor. 
 
 int crear_socket_server(char* nombreSocket){
 

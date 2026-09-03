@@ -79,66 +79,7 @@ int main()
     exit(EXIT_SUCCESS);
     }
 }
-
-//strace erróneo (ante de que ponga los exits y los waits)
-// emilia@emilia-HP-Laptop-14-dk1xxx:~/Desktop/Sistemas Operativos/practica1$ strace -q ./ej5
-// execve("./ej5", ["./ej5"], 0x7ffebb37cad8 /* 49 vars */) = 0
-// brk(NULL)                               = 0x3ef35000
-// brk(0x3ef35d00)                         = 0x3ef35d00
-// arch_prctl(ARCH_SET_FS, 0x3ef35380)     = 0
-// set_tid_address(0x3ef35650)             = 12187
-// set_robust_list(0x3ef35660, 24)         = 0
-// rseq(0x3ef35ca0, 0x20, 0, 0x53053053)   = 0
-// prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
-// readlinkat(AT_FDCWD, "/proc/self/exe", "/home/emilia/Desktop/Sistemas Op"..., 4096) = 54
-// getrandom("\x45\x47\xe3\x3a\x34\xce\x49\x74", 8, GRND_NONBLOCK) = 8
-// brk(NULL)                               = 0x3ef35d00
-// brk(0x3ef56d00)                         = 0x3ef56d00
-// brk(0x3ef57000)                         = 0x3ef57000
-// mprotect(0x4a6000, 20480, PROT_READ)    = 0
-// getpid()                                = 12187
-// fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0), ...}) = 0
-// write(1, "Soy Abraham, mi pID es:12187\n", 29Soy Abraham, mi pID es:12187
-// ) = 29
-// clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0x3ef35650) = 12188
-// Soy Homero, mi pID es:12188
-// Soy Maggie, mi pID es:12191
-// --- SIGCHLD {si_signo=SIGCHLD, si_code=CLD_EXITED, si_pid=12188, si_uid=1000, si_status=0, si_utime=0, si_stime=0} ---
-// exit_group(0)                           = ?
-// +++ exited with 0 +++
-// Soy Bart, mi pID es:12189
-// Soy Lisa, mi pID es:12190
-
-
-//strace despues de poner los exits (sin los waits)
-// emilia@emilia-HP-Laptop-14-dk1xxx:~/Desktop/Sistemas Operativos/practica1$ strace -q ./ej5
-// execve("./ej5", ["./ej5"], 0x7ffd2f49dee8 /* 49 vars */) = 0
-// brk(NULL)                               = 0xaef2000
-// brk(0xaef2d00)                          = 0xaef2d00
-// arch_prctl(ARCH_SET_FS, 0xaef2380)      = 0
-// set_tid_address(0xaef2650)              = 14026
-// set_robust_list(0xaef2660, 24)          = 0
-// rseq(0xaef2ca0, 0x20, 0, 0x53053053)    = 0
-// prlimit64(0, RLIMIT_STACK, NULL, {rlim_cur=8192*1024, rlim_max=RLIM64_INFINITY}) = 0
-// readlinkat(AT_FDCWD, "/proc/self/exe", "/home/emilia/Desktop/Sistemas Op"..., 4096) = 54
-// getrandom("\xd6\x0c\x80\x1d\x7e\x7d\x62\x01", 8, GRND_NONBLOCK) = 8
-// brk(NULL)                               = 0xaef2d00
-// brk(0xaf13d00)                          = 0xaf13d00
-// brk(0xaf14000)                          = 0xaf14000
-// mprotect(0x4a6000, 20480, PROT_READ)    = 0
-// getpid()                                = 14026
-// fstat(1, {st_mode=S_IFCHR|0620, st_rdev=makedev(0x88, 0), ...}) = 0
-// write(1, "Soy Abraham, mi pID es:14026\n", 29Soy Abraham, mi pID es:14026
-// ) = 29
-// clone(child_stack=NULL, flags=CLONE_CHILD_CLEARTID|CLONE_CHILD_SETTID|SIGCHLD, child_tidptr=0xaef2650) = 14027
-// exit_group(0Soy Homero, mi pID es:14027
-// Soy Bart, mi pID es:14028
-// Soy Lisa, mi pID es:14029
-// )                           = ?
-// Soy Maggie, mi pID es:14030
-// +++ exited with 0 +++
-
-//hay una manera de saber que Abraham terminó después que Homero y Homero después que Maggie?
+// otro strace strace -f -e trace=%signal,%process,write ./ej5
 
 
 //Ejercicio 7, waitpid agregado
@@ -171,4 +112,4 @@ int main()
 // exit_group(0)                           = ?
 // +++ exited with 0 +++
 
-//porqué Maggie se ejecuta antes que Lisa?
+//porqué Maggie se ejecuta antes que Lisa? los procesos son así

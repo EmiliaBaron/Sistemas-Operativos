@@ -9,15 +9,15 @@
 #include <sys/mman.h> //mmap
 
 void handlerPadreInt(int sig){
-
+    (void) sig;
 }
 
 void handlerHijoHup(int sig){
-
+    (void) sig;
 }
 
 void handlerHijoInt(int sig){
-
+    (void) sig;
     // sigset_t conjuntoCHLD;
     // sigset_t conjuntoINT;
 

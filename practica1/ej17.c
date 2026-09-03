@@ -1,12 +1,29 @@
-// mirar el 17.c porque este es feo
+// NO COMPILAAAA
 
+volatile sigaction_t nieto_termino = 0;
+
+static void handler_nieto_termino(int sig){
+    (void) sig
+    nieto_termino = 1;
+
+}
+
+// NO LO ENTIENDO 
+// A efectos del ejercicio y para evitar las posibles condiciones de carrera ocasionadas
+// por el polling, se asumirá que dos llamados concurrentes a la función calcular no pueden terminar a
+// la vez ni tampoco cercanos en el tiempo, sino con varios minutos de diferencia entre uno y otro.
+
+// el hijo solo puede recibir señal de su nieto, cual es el problema entonces?
+// el bloque while se rompe inmediatamente al recibir la señal? o corre su bloque una vez más? 
 
 void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO
 
     // pipes[][2] es equivalente a int pipes[N][2], 
-    // pipes[x] → es un arreglo de 2 enteros (int[2])
-    // pipes[x][0] → extremo de lectura del pipe
-    // pipes[x][1] → extremo de escritura
+    // pipes[x]  es un arreglo de 2 enteros (int[2])
+    // pipes[x][0]  extremo de lectura del pipe
+    // pipes[x][1]  extremo de escritura
+
+    signal(SIGUSR1, handler_nieto_termino);
 
     int hijoANieto[2];
     int nietoAHijo[2];
@@ -14,8 +31,9 @@ void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO
     pipe(nietoAHijo);
     pipe(hijoANieto);
 
+
     // HAY QUE CERRAR TODOS LOS PIPES QUE NO SON NUESTROS 
-    for(int j = 0; j < cantidad_procesos * 2; j++){
+    for(int j = 0; j < N * 2; j++){ //creo que es N no N * 2, 
         if(j != lugar_escritura_hijo_padre && j != i){
             close(pipes[j][0]);
             close(pipes[j][1]);
@@ -37,25 +55,54 @@ void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO
 
         write(hijoANieto[1], &numero, sizeof(numero));
 
+
+        while(!nieto_termino){
+            //acá se va a quedar colgado en read, hasta que reciba la señal del nieto
+            // y va a responder al padre que no recibió nada una vez más. 
+            read(pipes[i][0], &termino, sizeof(termino));
+            termino = 0; 
+            //no debería ser el pipe[N + i][1]?? tengo acceso al N?? SI, falta como parámetro en la función
+            write(pipes[i][1], &termino, sizeof(termino));
+        }
+
+        
+        
+        //atender al nieto después de mandar el  último no termino al padre
         read(nietoAHijo[0], &resultado, sizeof(resultado));
 
+        //atender al padre diciendo que esta vez terminamos
         read(pipes[i][0], &termino, sizeof(termino));
-        termino = '1'; //'1' en caracter es 49, pero si el padre lo interpreta como caracter funcionará
+        termino = 1;  
 
-        //no debería ser el pipe[N][1]?? tengo acceso al N?? SI, falta como parámetro en la función
+        //no debería ser el pipe[N + i][1]??
         write(pipes[i][1], &termino, sizeof(termino));
 
+
+        //mandar el resultado al padre
         write(pipes[i][1], &resultado, sizeof(resultado));
+
+
+        close(pipes[i][1]); // N+i !!!
+        close(pipes[i][0]);
+        close(hijoANieto[1]);
+        close(nietoAHijo[0]);
+        wait(NULL);
+        exit(EXIT_SUCCESS);
 
     }else{
         close(hijoANieto[1]);
         close(nietoAHijo[0]);
+
+        //para que no herede los pipes del padre (hijo)
+        close(pipes[i][1]); // N+i !!!
+        close(pipes[i][0]);
 
         int numeroNieto = 0;
 
         read(hijoANieto[0], &numeroNieto, sizeof(numeroNieto));
 
         numeroNieto = calcular(numeroNieto);
+        kill(geppid(), SIGNALR1);
 
         write(nietoAHijo[1], &numeroNieto, sizeof(numeroNieto));
 

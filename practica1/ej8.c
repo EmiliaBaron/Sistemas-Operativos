@@ -2,9 +2,6 @@
 #include <unistd.h> // para fork() 
 #include <stdlib.h> // para EXIT_SUCCESS y EXIT_FAILURE
 
-//los procesos parece que se ejecutan en desorden. Si se hace ./ej8 en la terminal varias veces, las respuestas de los
-//procesos hijo y padre se ejecutan en distinto momento cada vez.
-
 
 int main(int argc, char const *argv[]) {
     int dato = 0;

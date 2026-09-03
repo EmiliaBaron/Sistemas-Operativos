@@ -2,13 +2,13 @@ int result;
 
 void proceso_izquierda() {
     result = 0;
-    int colaDeEnvio[3];
+    int colaDeEnvio[3]; //es con una cola de envío así? capacidad 1 ya bastaría?
 
     colaDeEnvio.append(result);
 
     while (true) {
-        bool mandado
-        mandado = send(pid_derecha, colaDeEnvio.pop());
+        bool mandado;
+        mandado = send(pid_derecha, &colaDeEnvio.pop());
 
         if(mandado == false){
             colaDeEnvio.append(result);
@@ -25,12 +25,18 @@ void proceso_derecha() {
     while(true) {
         result = cómputo_muy_difícil_2();
 
-        int left_result = receive(pid_izquierda);
+        int left_result = receive(pid_izquierda, &result);
 
-        if(left_result == false){
-            colaDeResultados.append(result);
-        }else{
-            printf("%s %s", left_result, colaDeResultados.pop());
+        while (left_result == false){   //este lado si quiero que sea bloqueante porque si no printeo cualquier cosa
+            left_result = receive(pid_izquierda, &result);
         }
+
+        printf("%s %s", left_result, colaDeResultados.pop());
+        
     }
 }
+
+| bsend y comp_1 | comp_2
+|  compt_1        | comp_2
+| bsend y comp_1  | brecieve y comp_2 (recibe el anterior)
+se repite la secuencia

@@ -23,9 +23,7 @@ int main(){
 
         __pid_t pidHijo2OCero = fork();
 
-        if(pidHijo2OCero !=0){
-
-            printf("Padre, escribiendo en el pipe\n");
+        if(pidHijo2OCero !=0){ //PADREEE
 
             //maniobras
             close(padreAHijo1[0]);
@@ -35,20 +33,23 @@ int main(){
 
             numeroPadre = 0;
 
+            printf("Padre envia a Hijo1 el valor %d\n", numeroPadre);
+            fflush(stdout);
             write(padreAHijo1[1], &numeroPadre , sizeof(int)); 
 
             while(1){
 
-                printf("Padre, leyendo del pipe\n");
-                read(hijo2APadre[0], &numeroPadre , sizeof(int));
-                printf("Mensaje del hijo2:  %d\n", numeroPadre); 
-                printf("\n");
+                //printf("Padre, leyendo del pipe\n");
+                int bytes_leidos = read(hijo2APadre[0], &numeroPadre , sizeof(int));
+                //printf("Mensaje del hijo2:  %d\n", numeroPadre); 
+                //printf("\n");
 
-                if(numeroPadre >=50) break;
+                if(numeroPadre >=50 || (bytes_leidos == 0)) break;
 
                 numeroPadre = numeroPadre + 1;
 
-                printf("Padre, escribiendo en el pipe\n");
+                printf("Padre envía al Hijo1 el valor %d\n", numeroPadre);
+                fflush(stdout);
                 write(padreAHijo1[1], &numeroPadre, sizeof(int));
             }
 
@@ -69,17 +70,18 @@ int main(){
 
             while(1){
 
-                printf("Hijo2, leyendo el pipe\n");
+                //printf("Hijo2, leyendo el pipe\n");
             
-                read(hijo1AHijo2[0], &numeroHijo2, sizeof(int)); 
-                printf("Mensaje de hijo1: %d \n", numeroHijo2);
-                printf("\n");
+                int bytes_leidos = read(hijo1AHijo2[0], &numeroHijo2, sizeof(int)); 
+                //printf("Mensaje de hijo1: %d \n", numeroHijo2);
+                //printf("\n");
 
-                if(numeroHijo2 >= 50) break;
+                if(numeroHijo2 >= 50 || (bytes_leidos == 0)) break;
 
                 numeroHijo2 = numeroHijo2 + 1;
 
-                printf("Hijo2, escribiendo el pipe\n");
+                printf("Hijo2 envía a Padre el valor %d\n", numeroHijo2);
+                fflush(stdout);
                 write(hijo2APadre[1], &numeroHijo2 , sizeof(int));
 
             }
@@ -97,30 +99,23 @@ int main(){
         close(hijo2APadre[0]);
         close(hijo2APadre[1]);
 
-        while(numeroHijo1 <50){
+        while(1){
 
-            printf("Hijo1, leyendo el pipe\n");
+            //printf("Hijo1, leyendo el pipe\n");
             
-            read(padreAHijo1[0], &numeroHijo1, sizeof(int)); 
-            printf("Mensaje del padre: %d \n", numeroHijo1);
-            printf("\n");
+            int bytes_leidos = read(padreAHijo1[0], &numeroHijo1, sizeof(int)); 
+            //printf("Mensaje del padre: %d \n", numeroHijo1);
+            //printf("\n");
 
-            if(numeroHijo1 >=50) break;
+            if(numeroHijo1 >=50 || (bytes_leidos == 0)) break;
 
             numeroHijo1 = numeroHijo1 + 1;
 
-            printf("Hijo1, escribiendo el pipe\n");
+            printf("Hijo1 envía a Hijo2 el valor %d\n", numeroHijo1);
+            fflush(stdout);
             write(hijo1AHijo2[1], &numeroHijo1 , sizeof(int));
 
         }
-        
-        // printf("Hijo, leyendo el pipe\n");
-        // read(padreAHijo[0], &numero, 2);
-        // printf("Mensaje del padre: \"%s\" \n", numero);
-        // printf("\n");
-
-        // printf("Hijo, escribiendo el pipe\n");
-        // write(hijoAPadre[1], "3" , 2);
 
         close(padreAHijo1[0]);
         close(hijo1AHijo2[1]);
