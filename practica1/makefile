@@ -1,10 +1,10 @@
 CC = gcc 
 CFLAGS = -static -Wall -Wextra -pedantic -g
-TARGET = ej19b #nombre del binario
+TARGET = estrella#nombre del binario
 
 all: $(TARGET)
 
-SRCS = ej19b.c
+SRCS = estrella.c
 OBJS = $(SRCS:.c=.o)
 
 $(TARGET): $(OBJS)
