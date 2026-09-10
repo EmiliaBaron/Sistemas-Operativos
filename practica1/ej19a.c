@@ -22,7 +22,7 @@ int main(){
 
         server_addr.sun_family = AF_UNIX;
         strcpy(server_addr.sun_path, "unix_socket");
-        unlink(server_addr.sun_path);
+        unlink(server_addr.sun_path); //desvincula un archivo -> es necesario?
 
         server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
         bind(server_socket, (struct sockaddr *) &server_addr, slen);

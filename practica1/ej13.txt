@@ -3,6 +3,7 @@ int result;
 void proceso_izquierda() {
     result = 0;
     int colaDeEnvio[3]; //es con una cola de envío así? capacidad 1 ya bastaría?
+    // DEBERIA ESTAR IMPLEMENTADO EN EL SO, NO ACA.
 
     colaDeEnvio.append(result);
 

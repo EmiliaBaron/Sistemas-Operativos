@@ -7,10 +7,14 @@
 #include <sys/socket.h> // para los sockets
 #include <sys/un.h> // para el sockaddr_un
 #include <poll.h> //para poll
+#include <errno.h> 
 
 #define MAX_CLIENTS 6
 #define MAX_PROC 3
+#define BACKLOG 64
 
+#define READ 0
+#define WRITE 1
 
 typedef struct {
     long potencial_primo;
@@ -25,23 +29,38 @@ typedef struct {
     long potencial_primo;
     int es_potencial_primo;
 }respuesta_proceso;
-    
-
 
 
 int crear_server_socket(char* nombreSocket){
 
     int server_socket;
-    struct sockaddr_un server_addr;
-    socklen_t slen = sizeof(server_addr);
+    struct sockaddr_un server_addr; //yo hago sockaddr_un en vez de sockaddr_in
 
-    server_addr.sun_family = AF_UNIX;
     strcpy(server_addr.sun_path, nombreSocket);
-    unlink(server_addr.sun_path);
+    unlink(server_addr.sun_path);  // desvincula el socket -> es necesario?
+    
+    // strncpy(addr.sun_path, path, sizeof(addr.sun_path) - 1);
+    
 
     server_socket = socket(AF_UNIX, SOCK_STREAM, 0);
-    bind(server_socket, (struct sockaddr *) &server_addr, slen);
-    listen(server_socket, 6);
+    
+    if (server_socket < 0) {
+		perror("error de socket");
+		return EXIT_FAILURE;
+	}
+   
+    socklen_t slen = sizeof(server_addr);
+    server_addr.sun_family = AF_UNIX;
+
+    if (bind(server_socket, (struct sockaddr *) &server_addr, slen)){
+    	perror("error del bind");
+		return EXIT_FAILURE;
+	}
+    
+    if (listen(server_socket, BACKLOG)){ //hasta BACKLOG conexiones entrantes
+    	perror("error del listen");
+		return EXIT_FAILURE;
+	}
 
     return server_socket;
 }
@@ -139,7 +158,7 @@ void mandar_a_servidor_proceso(int servidor_proc, long potencial_primo, long cot
     datos_para_proc.cota_sup = cota_sup;
 
     //se debe mandar un send o recv con un struct con todos los datos para asegurarse que llegan completos;
-    // si se manda uno atrás de otro llegan echos percha porque se leen como misma secuencia de bytes, es decir, 
+    // si se manda uno atrás de otro llegan hechos percha porque se leen como misma secuencia de bytes, es decir, 
     // no se diferencia un mensaje de otro y llegan mal
 
     send(servidor_proc, &datos_para_proc, sizeof(datos_para_proc), 0);
@@ -149,214 +168,132 @@ void mandar_a_servidor_proceso(int servidor_proc, long potencial_primo, long cot
 
 }
 
-int main(){
+int chequear_es_primo(int numero, int cota_inf, int cota_sup){
 
-   //COMIENZO PROCESOS
-
-    // hacer que los hijos creen sus propios servidores y esperen a accept mientras que el padre paralelamente intenta
-    // conectarse a los servidores crea una condición de carrera
-    //chatgpt
-    //2. Condición de Carrera en la Conexión
-    //En el main, los hijos llaman a crear_server_socket y el padre inmediatamente intenta conectarse_al_servidor.
-    //Aunque usaste un while(connect(...) == -1) sleep(1), si el hijo aún no llegó al accept, la conexión queda pendiente.
-    //En el strace se ve que el Servidor principal está enviando datos (sendto) a los descriptores de los hijos, 
-    //pero si un hijo está ocupado o no leyó en el orden exacto, el buffer se llena.
-
-    int servidor_proc1 = crear_server_socket("servidor_proc1");
-    int servidor_proc2 = crear_server_socket("servidor_proc2");
-    int servidor_proc3 = crear_server_socket("servidor_proc3");
-
-
-    __pid_t proceso1OCero = fork();
-
-    if(proceso1OCero == 0){  //Proceso 1
-
-
-        realizar_tarea_proceso(servidor_proc1, 1);
-
-        exit(EXIT_SUCCESS);
-
-    }else{
-
-        __pid_t proceso2OCero = fork();
-
-        if(proceso2OCero == 0){ //Proceso 2
-
-            realizar_tarea_proceso(servidor_proc2, 2);
-
-            exit(EXIT_SUCCESS);
-
-        }else{
-
-            __pid_t proceso3OCero = fork();
-
-            if(proceso3OCero == 0){ //Proceso 3
-
-                realizar_tarea_proceso(servidor_proc3,3);
-
-                exit(EXIT_SUCCESS);
-
-            }else{
-
-                //FIN PROCESOS
-
-                int i;
-                long potencial_primo;
-                //int mensaje;
-                struct sockaddr_un client_addr;
-                socklen_t clen = sizeof(client_addr);
-
-                // conecto los tres procesos
-                int cliente_servidor_proc1 = conectarse_al_servidor("servidor_proc1");
-                int cliente_servidor_proc2 = conectarse_al_servidor("servidor_proc2");
-                int cliente_servidor_proc3 = conectarse_al_servidor("servidor_proc3");
-
-                int server_socket = crear_server_socket("servidor");
-
-                struct pollfd fds[MAX_CLIENTS + 1];
-                // El índice 0 será para el socket del servidor (nuevas conexiones)
-                fds[0].fd = server_socket;
-                fds[0].events = POLLIN; // Queremos saber cuando hay datos de entrada
-                
-                // Inicializar el resto de los fds como vacíos (-1 es ignorado por poll)
-                for (i = 1; i <= MAX_CLIENTS; i++) fds[i].fd = -1;
-
-                //meto los otros sockets en 1 2 y 3
-                // esto hace que el poll atienda a todos y no recurrir a lecturas y escrituras bloqueantes
-                fds[1].fd = cliente_servidor_proc1;
-                fds[1].events = POLLIN;
-                
-                fds[2].fd = cliente_servidor_proc2;
-                fds[2].events = POLLIN;
-
-                fds[3].fd = cliente_servidor_proc3;
-                fds[3].events = POLLIN;
-
-                //matriz de registro de respuestas de clientes
-                // me sobran 3 espacios pero a la mierda todo
-                int respuestas_clientes[MAX_CLIENTS + 1][4];
-
-                //pongo -1 en todo para diferenciar resultado de nada
-                for (i =0; i <= MAX_CLIENTS; i++){
-                    for(int j = 0; j <= 3; j++) respuestas_clientes[i][j] = -1;
-                }
-
-                printf("Servidor: esperando conexión del cliente...\n");
-
-                int a = 0;
-                while(a <=2) {
-            
-                    poll(fds, MAX_CLIENTS + 1, 5);
-
-
-                    if (fds[0].revents & POLLIN) {
-                        int client_socket = accept(server_socket, (struct sockaddr *) &client_addr, &clen);
-                        printf("Nueva conexión aceptada (FD: %d)\n", client_socket);
-
-                        // Añadir el nuevo socket al array de fds
-                        for (i = 1; i <= MAX_CLIENTS; i++) {
-                            if (fds[i].fd == -1) {
-                                fds[i].fd = client_socket;
-                                fds[i].events = POLLIN;
-                                break;
-                            }
-                        }
-                    }
-
-                    // Revisar si algún cliente envió datos
-                    for (i = 1; i <= MAX_CLIENTS; i++) {
-                        if (fds[i].fd > 0 && (fds[i].revents & POLLIN)) {
-
-                            //mensaje de procesos
-                            if (fds[i].fd == cliente_servidor_proc1 || fds[i].fd == cliente_servidor_proc2 || fds[i].fd == cliente_servidor_proc3 ){ 
-
-                                respuesta_proceso respuesta;
-
-                                // no se usan pipes porque su read y write son bloqueantes, y nosotros queremos que el 
-                                //servidor pueda atender varios clientes a la vez
-                                int respuesta_para_cliente;
-
-                                int recibido = recv(fds[i].fd, &respuesta, sizeof(respuesta), 0);
-                                if(recibido <= 0){
-                                    printf("Error en el mensaje del proceso de índice %d", i);
-
-                                }
-                            
-                                if(i == 1) respuestas_clientes[respuesta.indice_cliente][1] = respuesta.es_potencial_primo;
-                                if(i == 2) respuestas_clientes[respuesta.indice_cliente][2] = respuesta.es_potencial_primo;
-                                if(i == 3) respuestas_clientes[respuesta.indice_cliente][3] = respuesta.es_potencial_primo;
-
-                                printf("Servidor: respuesta del proceso%d para %ld = %d\n", i, respuesta.potencial_primo, respuesta.es_potencial_primo);
-
-                                    
-                                if (respuestas_clientes[respuesta.indice_cliente][1] != -1 &&
-                                respuestas_clientes[respuesta.indice_cliente][2] != -1 &&
-                                respuestas_clientes[respuesta.indice_cliente][3] != -1){
-
-                                    respuesta_para_cliente = respuestas_clientes[respuesta.indice_cliente][1] 
-                                                            && respuestas_clientes[respuesta.indice_cliente][2] 
-                                                            && respuestas_clientes[respuesta.indice_cliente][3];
-
-                                    send(fds[respuesta.indice_cliente].fd, &respuesta_para_cliente, sizeof(respuesta_para_cliente), 0);
-                                    
-                                    //reseteo las respuestas para que no se mezcle dos pedidos de un cliente
-                                    for(int m = 0; m <= 3; m++ ) respuestas_clientes[respuesta.indice_cliente][m] = -1;
-
-                                }
-                                
-
-                            }else{
-
-                                int valread = recv(fds[i].fd, &potencial_primo, sizeof(potencial_primo),0);
-
-                                if (valread == 0) {
-                                    // El cliente se desconectó
-                                    printf("Cliente desconectado (FD: %d)\n", fds[i].fd);
-                                    close(fds[i].fd);
-                                    fds[i].fd = -1;
-                                
-                                }else{ 
-                                    //mensaje de cliente
-                                    printf("Recibido de cliente indice %d: %ld\n", i, potencial_primo);
-
-                                    // *calculo de primo*
-
-                                    long rango = potencial_primo / 3;
-                                    long cota_inf = 1;
-                                    long cota_sup = rango;
-
-                                    mandar_a_servidor_proceso(cliente_servidor_proc1, potencial_primo, cota_inf, cota_sup, i);
-
-                                    cota_inf = rango + 1;
-                                    cota_sup = rango + rango;
-
-                                    mandar_a_servidor_proceso(cliente_servidor_proc2, potencial_primo, cota_inf, cota_sup, i);
-
-                                    cota_inf = rango + rango + 1;
-                                    cota_sup = potencial_primo;
-
-                                    mandar_a_servidor_proceso(cliente_servidor_proc3, potencial_primo, cota_inf, cota_sup, i);
-
-                                } 
-
-                            }
-                        }
-                    }
-                    
-
-
-                    a++;
-                }
-                close(server_socket);
-
-                wait(NULL);
-                wait(NULL);
-                wait(NULL);
-
-                exit(EXIT_SUCCESS);
-
-            }
+    for(int i = cota_inf; i<=cota_sup; i++){
+        if(numero % i == 0 && i != 1 && i != numero){
+            return 0;
         }
+
     }
 
+    return 1;
+
 }
+
+void handle_client(int fd_cliente){
+
+    int numero;
+    ssize_t bytes_recieved = recv(fd_cliente, &numero, sizeof(int), 0);
+
+    if(bytes_recieved<0){
+        if (errno == EINTR)
+        exit(EXIT_FAILURE);
+    }	
+
+    if (bytes_recieved == 0)
+        exit(EXIT_SUCCESS);      /* el cliente cerró prolijamente */
+
+    
+    
+    int pipes[3][2];
+    
+    for (int i = 0; i<3; i++){
+        pipe(pipes[i]);
+    }
+
+    long rango = (long) numero / 3; //-> debería guardar un entero
+    long cota_inf = 1;
+    long cota_sup = rango;
+
+    for(int i =0; i<3; i++){
+        int hijo = fork();
+
+        if (hijo == 0){
+
+            for(int j = 0; j<3; j++){
+                if(j != i){
+                    close(pipes[j][READ]);
+                    close(pipes[j][WRITE]);
+                }
+
+            }   
+            close(pipes[i][READ]);
+            int res = 0;
+
+            if(i != 2){
+                res = chequear_es_primo(numero, cota_inf, cota_sup);
+            }
+            if (i == 2){
+                res = chequear_es_primo(numero, cota_inf, numero);
+            }
+
+            write(pipes[i][WRITE], &res, sizeof(res));
+            printf("estoy calculando el rango %ld hasta %ld del numero %d con resultado %d\n", cota_inf, cota_sup, numero, res);
+            fflush(stdout);
+            close(pipes[i][WRITE]);
+            exit(EXIT_SUCCESS);
+
+        }
+        cota_inf += rango;
+        cota_sup +=rango;
+    }
+
+    for(int j = 0; j<3; j++ ){
+        close(pipes[j][WRITE]);
+    }
+
+    int res1;
+    int res2;
+    int res3;
+
+    read(pipes[0][READ], &res1, sizeof(res1));
+    read(pipes[1][READ], &res2, sizeof(res1));
+    read(pipes[2][READ], &res3, sizeof(res1));
+    
+    int es_primo = res1 && res2 && res3;
+    printf("resultado 1 = %d, resultado2 = %d, resutlado3 = %d\n", res1, res2, res3);
+    fflush(stdout);
+    printf("le mando al cliente que el resultado es %d\n", es_primo);
+    fflush(stdout);
+
+
+    for (int i = 0; i<2; i++){
+        wait(NULL);
+    }
+
+    send(fd_cliente, &es_primo, sizeof(es_primo), 0);
+    
+    close(fd_cliente);
+    exit(EXIT_SUCCESS);
+}
+
+
+
+int main(){
+
+    int listen_fd = crear_server_socket("servidor");
+
+    for(;;){
+
+        int res = accept(listen_fd, NULL, NULL); // por qué NULL NULL?
+
+        if(res!=-1){
+			//Hacemos un fork para que el proceso que responde al cliente i corra en otro proceso y no colgar al padre.
+			pid_t pid= fork();
+			if(pid==0){
+				//Cerramos el FD del padre en el contexto del hijo ya que no lo va a usar.
+				close(listen_fd);
+				//Lo que hace el servidor para gestionar cada cliente.
+				handle_client(res);
+				exit(EXIT_SUCCESS);
+			}
+			//Cerramos el descriptor resultante de la conexión. El child se hace cargo de todo. 
+            //Al padre no le interesa. No lo va a usar.
+			close(res);
+		}
+    }   
+    close(listen_fd);
+    exit(EXIT_SUCCESS);
+}
+

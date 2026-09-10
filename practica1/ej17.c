@@ -16,7 +16,7 @@ static void handler_nieto_termino(int sig){
 // el hijo solo puede recibir señal de su nieto, cual es el problema entonces?
 // el bloque while se rompe inmediatamente al recibir la señal? o corre su bloque una vez más? 
 
-void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO
+void ejecutarHijo(int i, int pipes[][2]) { // FALTA PASAR N COMO PARÁMETRO POR MAS QUE LO HEREDA EL HIJO 
 
     // pipes[][2] es equivalente a int pipes[N][2], 
     // pipes[x]  es un arreglo de 2 enteros (int[2])

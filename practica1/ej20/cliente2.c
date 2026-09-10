@@ -20,8 +20,8 @@ int main() {
 
     long num = 45;
     int res;
-    write(server_socket, &num, sizeof(num));
-    read(server_socket, &res, sizeof(res));
+    send(server_socket, &num, sizeof(num), 0);
+    recv(server_socket, &res, sizeof(res), 0);
 
     if(res == 0){
         printf("Cliente2: recibí que %ld NO es primo del servidor!\n", num);
