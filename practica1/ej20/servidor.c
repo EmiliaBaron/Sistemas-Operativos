@@ -16,21 +16,6 @@
 #define READ 0
 #define WRITE 1
 
-typedef struct {
-    long potencial_primo;
-    long cota_inf;
-    long cota_sup;
-    int cliente;
-
-} datos_para_proceso;
-
-typedef struct {
-    int indice_cliente;
-    long potencial_primo;
-    int es_potencial_primo;
-}respuesta_proceso;
-
-
 int crear_server_socket(char* nombreSocket){
 
     int server_socket;
@@ -80,91 +65,6 @@ int conectarse_al_servidor(char* nombreSocket){
     }
 
     return servidor_socket;
-
-}
-
-void realizar_tarea_proceso(int servidor_del_proceso, int numero_proceso){
-
-    datos_para_proceso datos;
-    respuesta_proceso respuesta;
-    int client_socket;
-    int cliente_prendido = 1; 
-    //int socket_servidor = conectarse_al_servidor("servidor");
-    //printf("Proceso%d: conectado al servidor");
-
-    struct sockaddr servidor_addr;
-    socklen_t sevidorlen = sizeof(servidor_addr);
-
-    //servidor_proc = crear_server_socket(nombre_servidor_del_proceso);
-    client_socket = accept(servidor_del_proceso, (struct sockaddr *) &servidor_addr, &sevidorlen);
-    printf("Proceso%d: servidor%d aceptado.\n", numero_proceso, numero_proceso);
-
-
-
-    while(cliente_prendido){
-        respuesta.es_potencial_primo = 1;
-
-        cliente_prendido = recv(client_socket, &datos, sizeof(datos), 0);
-        if(cliente_prendido == 0) break;
-        if(datos.cota_inf == 0){
-            printf("Proceso%d: cota inferior del rango es igual a cero", numero_proceso);
-            break;
-        }
-
-        respuesta.potencial_primo = datos.potencial_primo;
-        respuesta.indice_cliente = datos.cliente;
-
-        // cliente_prendido = recv(client_socket, &potencial_primo, sizeof(potencial_primo), 0);
-        // // hay que validar que cliente_prendido != 0 en cada lectura
-        // if(cliente_prendido == 0) break;
-        // cliente_prendido = recv(client_socket, &cota_inferior_rango, sizeof(cota_inferior_rango), 0);
-        
-        // if(cota_inferior_rango == 0){
-        //     printf("Proceso%d: cota inferior del rango es igual a cero", numero_proceso);
-        //     break;
-        // }
-        
-        // if(cliente_prendido == 0) break;
-        // cliente_prendido = recv(client_socket, &cota_superior_rango, sizeof(cota_superior_rango), 0);
-        // if(cliente_prendido == 0) break;
-        // cliente_prendido = recv(client_socket, &numero_cliente, sizeof(numero_cliente), 0);
-        // if(cliente_prendido == 0) break;
-
-        for (int i = datos.cota_inf; i <= datos.cota_sup; i++){
-
-            if (datos.potencial_primo % i == 0 && i != 1 && i != datos.potencial_primo){
-                respuesta.es_potencial_primo = 0;
-                break;
-            }
-        }
-
-        //write(pipe[1], &es_potencial_primo, sizeof(es_potencial_primo));
-
-        send(client_socket, &respuesta, sizeof(respuesta), 0);
-    }   
-
-    //close(servidor_proc);
-    close(client_socket);
-
-}
-
-void mandar_a_servidor_proceso(int servidor_proc, long potencial_primo, long cota_inf, long cota_sup, int numero_cliente){
-
-    datos_para_proceso datos_para_proc;
-
-    datos_para_proc.potencial_primo = potencial_primo;
-    datos_para_proc.cliente = numero_cliente;
-    datos_para_proc.cota_inf = cota_inf;
-    datos_para_proc.cota_sup = cota_sup;
-
-    //se debe mandar un send o recv con un struct con todos los datos para asegurarse que llegan completos;
-    // si se manda uno atrás de otro llegan hechos percha porque se leen como misma secuencia de bytes, es decir, 
-    // no se diferencia un mensaje de otro y llegan mal
-
-    send(servidor_proc, &datos_para_proc, sizeof(datos_para_proc), 0);
-    // send(servidor_proc, &cota_inf, sizeof(cota_inf),0);
-    // send(servidor_proc, &cota_sup, sizeof(cota_sup),0);
-    // send(servidor_proc, &numero_cliente, sizeof(numero_cliente), 0);
 
 }
 
